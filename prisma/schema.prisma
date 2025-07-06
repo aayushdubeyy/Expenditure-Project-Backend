@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id @default(uuid())
+  name             String
+  email            String         @unique
+  password         String
+  totalCreditLimit Float          @default(0)
+  expenses         Expense[]
+  creditCards      CreditCard[]   
+  createdAt        DateTime       @default(now())
+}
+
+model PaymentMethod {
+  id Int @id @default(autoincrement())
+  name String @unique
+  expenses Expense[]
+}
+
+model Category {
+  id Int @id @default(autoincrement())
+  name String @unique
+  expenses Expense[]
+}
+
+model CreditCard {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  name            String   // e.g., HDFC Millennia, Axis Neo
+  limit           Float
+  billCycleDay    Int      // e.g., 15 means bill generates on 15th of every month
+  lastBillDate    DateTime?
+  currentUsage    Float    @default(0) 
+
+  createdAt       DateTime @default(now())
+
+  expenses        Expense[]
+
+  @@index([userId])
+}
+
+
+model Expense {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  categoryId      Int
+  category        Category @relation(fields: [categoryId], references: [id])
+
+  paymentMethodId Int
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+
+  creditCardId    String?       // Optional FK
+  creditCard      CreditCard?   @relation(fields: [creditCardId], references: [id])
+
+  title           String
+  amount          Float
+  date            DateTime
+  notes           String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([paymentMethodId])
+  @@index([creditCardId])
+}
