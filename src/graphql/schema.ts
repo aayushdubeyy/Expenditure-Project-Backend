@@ -58,11 +58,28 @@ const typeDefs = gql`
     date: String!
     notes: String
   }
+  input ExpensesFilterInput {
+  month: Int
+  year: Int
+  paymentMethodId: Int
+}
   type Query {
-    hello: String!
-  }
+  getMonthlyExpenses(filter: ExpensesFilterInput): [Expense!]!
+}
+  input LoginInput {
+  email: String!
+  password: String!
+}
+
+type AuthResponse {
+  success: Boolean!
+  message: String
+  token: String
+  user: User
+}
   type Mutation {
-    register(input: RegisterInput!) : UserResponse!
+    register(input: RegisterInput!) : AuthResponse!
+    login(input: LoginInput!): AuthResponse!
   AddCreditCard(input: AddCreditCardInput!) : CreditCardResponse!
   AddExpense(input: AddExpenseInput!) : ExpenseResponse!
   }
