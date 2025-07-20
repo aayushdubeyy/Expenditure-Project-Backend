@@ -42,14 +42,14 @@ const typeDefs = gql`
     password: String!
   }
   input AddCreditCardInput {
-    userId: ID!
+    # userId: ID!
     name: String!
     limit: Float!
     billCycleDay: Int!
   }
 
   input AddExpenseInput {
-    userId: ID!
+    # userId: ID!
     title: String!
     amount: Float!
     categoryId: Int!
@@ -59,29 +59,60 @@ const typeDefs = gql`
     notes: String
   }
   input ExpensesFilterInput {
-  month: Int
-  year: Int
-  paymentMethodId: Int
-}
+    month: Int
+    year: Int
+    paymentMethodId: Int
+  }
   type Query {
-  getMonthlyExpenses(filter: ExpensesFilterInput): [Expense!]!
-}
+    getMonthlyExpenses(filter: ExpensesFilterInput): [Expense!]!
+  }
   input LoginInput {
-  email: String!
-  password: String!
-}
+    email: String!
+    password: String!
+  }
 
-type AuthResponse {
-  success: Boolean!
-  message: String
-  token: String
-  user: User
-}
+  type AuthResponse {
+    success: Boolean!
+    message: String
+    token: String
+    user: User
+  }
+  input AddCategoryInput {
+    name: String!
+  }
+
+  input AddPaymentMethodInput {
+    name: String!
+  }
+  type Category {
+    id: ID!
+    name: String!
+  }
+
+  type PaymentMethod {
+    id: ID!
+    name: String!
+  }
+
+  type CategoryResponse {
+    success: Boolean!
+    message: String
+    data: Category
+  }
+
+  type PaymentMethodResponse {
+    success: Boolean!
+    message: String
+    data: PaymentMethod
+  }
+
   type Mutation {
-    register(input: RegisterInput!) : AuthResponse!
+    register(input: RegisterInput!): AuthResponse!
     login(input: LoginInput!): AuthResponse!
-  AddCreditCard(input: AddCreditCardInput!) : CreditCardResponse!
-  AddExpense(input: AddExpenseInput!) : ExpenseResponse!
+    AddCreditCard(input: AddCreditCardInput!): CreditCardResponse!
+    AddExpense(input: AddExpenseInput!): ExpenseResponse!
+    AddCategory(input: AddCategoryInput!): CategoryResponse!
+    AddPaymentMethod(input: AddPaymentMethodInput!): PaymentMethodResponse!
   }
 `;
 

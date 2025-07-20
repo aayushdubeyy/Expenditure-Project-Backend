@@ -9,8 +9,10 @@ import {
   successResponse,
 } from "../../utils/response";
 import {
+  AddCategoryInput,
   AddCreditCardInput,
   AddExpenseInput,
+  AddPaymentMethodInput,
   ExpensesFilterInput,
   LoginInput,
   RegisterInput,
@@ -19,14 +21,18 @@ import bcrypt from "bcrypt";
 
 export default {
   Query: {
-    getMonthlyExpenses: async (_: any, { filter } : ExpensesFilterInput, { prisma, user} : Context) => {
+    getMonthlyExpenses: async (
+      _: any,
+      { filter }: ExpensesFilterInput,
+      { prisma, user }: Context
+    ) => {
       const authUser = requireAuth(user);
       const now = moment();
       const month = filter?.month || now.month() + 1; // moment months are 0-indexed
       const year = filter?.year || now.year();
-      
-      const startDate = moment(`${year}-${month}-01`).startOf('month').toDate();
-      const endDate = moment(startDate).endOf('month').toDate();
+
+      const startDate = moment(`${year}-${month}-01`).startOf("month").toDate();
+      const endDate = moment(startDate).endOf("month").toDate();
 
       const whereClause: any = {
         userId: authUser.id,
@@ -36,26 +42,26 @@ export default {
         },
       };
 
-      if(filter?.paymentMethodId) {
+      if (filter?.paymentMethodId) {
         whereClause.paymentMethodId = filter.paymentMethodId;
       }
 
       const expenses = await prisma.expense.findMany({
         where: whereClause,
         orderBy: {
-          date: 'desc',
+          date: "desc",
         },
         include: {
           category: true,
           paymentMethod: true,
           creditCard: true,
         },
-      })
-      return expenses.map(expense => ({
+      });
+      return expenses.map((expense) => ({
         ...expense,
-        date: moment(expense.date).format('YYYY-MM-DD'),
+        date: moment(expense.date).format("YYYY-MM-DD"),
       }));
-    }
+    },
   },
   Mutation: {
     AddCreditCard: async (
@@ -63,7 +69,7 @@ export default {
       { input }: AddCreditCardInput,
       { prisma, user }: Context
     ) => {
-        const authUser = requireAuth(user);
+      const authUser = requireAuth(user);
       const { name, limit, billCycleDay } = input;
       const newCard = await prisma.creditCard.create({
         data: {
@@ -80,7 +86,8 @@ export default {
       { input }: AddExpenseInput,
       { prisma, user }: Context
     ) => {
-          const authUser = requireAuth(user);
+      const authUser = requireAuth(user);
+      console.log("Adding expense for user:", authUser.id);
       const {
         title,
         amount,
@@ -122,19 +129,63 @@ export default {
       return loginSuccessResponse(token, { id: user.id, email: user.email });
     },
     login: async (_: any, { input }: LoginInput, { prisma }: Context) => {
-    const { email, password } = input;
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return loginErrorResponse("User not found");
-    }
+      const { email, password } = input;
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        return loginErrorResponse("User not found");
+      }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return loginErrorResponse("Invalid password");
-    }
-    const token = generateToken({ id: user.id, email: user.email });
-    return loginSuccessResponse(token, { id: user.id, email: user.email });
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return loginErrorResponse("Invalid password");
+      }
+      const token = generateToken({ id: user.id, email: user.email });
+      return loginSuccessResponse(token, { id: user.id, email: user.email });
+    },
+    AddCategory: async (
+      _: any,
+      { input }: AddCategoryInput,
+      { prisma, user }: Context
+    ) => {
+      const authUser = requireAuth(user);
+      const { name } = input;
+
+      const existing = await prisma.category.findUnique({ where: { name } });
+      if (existing) {
+        return errorResponse("Category already exists");
+      }
+
+      const newCategory = await prisma.category.create({
+        data: {
+          name,
+        },
+      });
+
+      return successResponse(newCategory, "Category added successfully");
+    },
+
+    AddPaymentMethod: async (
+      _: any,
+      { input }: AddPaymentMethodInput,
+      { prisma, user }: Context
+    ) => {
+      const authUser = requireAuth(user);
+      const { name } = input;
+
+      const existing = await prisma.paymentMethod.findUnique({
+        where: { name },
+      });
+      if (existing) {
+        return errorResponse("Payment method already exists");
+      }
+
+      const newMethod = await prisma.paymentMethod.create({
+        data: {
+          name,
+        },
+      });
+
+      return successResponse(newMethod, "Payment method added successfully");
+    },
   },
-  },
-  
 };

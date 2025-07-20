@@ -47,3 +47,15 @@ export interface ExpensesFilterInput{
     paymentMethodId?: number;
   }
 }
+
+export interface AddCategoryInput {
+  input: {
+    name: string;
+  };
+}
+
+export interface AddPaymentMethodInput {
+  input: {
+    name: string;
+  };
+}
