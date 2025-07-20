@@ -6,6 +6,7 @@ import resolvers from "./graphql/resolvers";
 import redis from "./redis";
 import { initKafka } from "./kafka";
 import { context, createContext } from './context';
+import { getCache, setCache } from './utils/redis';
 
 export async function startServer() {
   // await initKafka(); // ✅ Kafka connects
