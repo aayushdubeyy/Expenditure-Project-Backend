@@ -65,6 +65,7 @@ const typeDefs = gql`
   }
   type Query {
     getMonthlyExpenses(filter: ExpensesFilterInput): [Expense!]!
+    getSpendBreakdown(filter: YearFilterInput!): SpendBreakdownResponse!
   }
   input LoginInput {
     email: String!
@@ -105,7 +106,35 @@ const typeDefs = gql`
     message: String
     data: PaymentMethod
   }
-
+  input YearFilterInput {
+    year: Int!
+  }
+  type CategorySpend {
+    month: Int
+    categoryName: String!
+    percent: Float!
+  }
+  type MethodSpend {
+    month: Int
+    methodName: String!
+    percent: Float!
+  }
+  type YearlyCategorySpend {
+    categoryName: String!
+    percent: Float!
+  }
+  type YearlyMethodSpend {
+    methodName: String!
+    percent: Float!
+  }
+  type SpendBreakdownResponse {
+    success: Boolean!
+    message: String
+    monthlyCategoryBreakdown: [CategorySpend!]!
+    monthlyMethodBreakdown: [MethodSpend!]!
+    yearlyCategoryBreakdown: [YearlyCategorySpend!]!
+    yearlyMethodBreakdown: [YearlyMethodSpend!]!
+  }
   type Mutation {
     register(input: RegisterInput!): AuthResponse!
     login(input: LoginInput!): AuthResponse!

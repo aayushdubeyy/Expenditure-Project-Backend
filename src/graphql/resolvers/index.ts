@@ -2,33 +2,21 @@ import moment from "moment";
 import { Context } from "../../context";
 import { requireAuth } from "../../middlewares/auth";
 import { generateToken } from "../../utils/jwt";
-import {
-  errorResponse,
-  loginErrorResponse,
-  loginSuccessResponse,
-  successResponse,
-} from "../../utils/response";
-import {
-  AddCategoryInput,
-  AddCreditCardInput,
-  AddExpenseInput,
-  AddPaymentMethodInput,
-  ExpensesFilterInput,
-  LoginInput,
-  RegisterInput,
-} from "../interface";
+import * as utils from "../../utils/response";
+import * as typescriptTypes from "../interface";
 import bcrypt from "bcrypt";
+import { getSpendBreakdown } from "../../services/expenditure/spendBreakdown.service";
 
 export default {
   Query: {
     getMonthlyExpenses: async (
       _: any,
-      { filter }: ExpensesFilterInput,
+      { filter }: typescriptTypes.ExpensesFilterInput,
       { prisma, user }: Context
     ) => {
       const authUser = requireAuth(user);
       const now = moment();
-      const month = filter?.month || now.month() + 1; // moment months are 0-indexed
+      const month = filter?.month || now.month() + 1;
       const year = filter?.year || now.year();
 
       const startDate = moment(`${year}-${month}-01`).startOf("month").toDate();
@@ -45,7 +33,7 @@ export default {
       if (filter?.paymentMethodId) {
         whereClause.paymentMethodId = filter.paymentMethodId;
       }
-
+      // Todo: Create repository folders for all the DB calls
       const expenses = await prisma.expense.findMany({
         where: whereClause,
         orderBy: {
@@ -62,11 +50,37 @@ export default {
         date: moment(expense.date).format("YYYY-MM-DD"),
       }));
     },
+    getSpendBreakdown: async (
+      _: any,
+      { filter }: { filter: { year: number } },
+      { prisma, user }: Context
+    ) => {
+      const authUser = requireAuth(user);
+      try {
+        const data = await getSpendBreakdown(authUser.id, filter?.year);
+        return {
+          success: true,
+          message: "Spend breakdown fetched successfully",
+          ...data,
+        };
+      } catch (error) {
+        console.error(error);
+        // Todo: use a normal errorResponse
+        return {
+          success: false,
+          message: "Failed to fetch spend breakdown",
+          monthlyCategoryBreakdown: [],
+          monthlyMethodBreakdown: [],
+          yearlyCategoryBreakdown: [],
+          yearlyMethodBreakdown: [],
+        };
+      }
+    },
   },
   Mutation: {
     AddCreditCard: async (
       _: any,
-      { input }: AddCreditCardInput,
+      { input }: typescriptTypes.AddCreditCardInput,
       { prisma, user }: Context
     ) => {
       const authUser = requireAuth(user);
@@ -79,11 +93,11 @@ export default {
           billCycleDay,
         },
       });
-      return successResponse(newCard, "Credit card added successfully");
+      return utils.successResponse(newCard, "Credit card added successfully");
     },
     AddExpense: async (
       _: any,
-      { input }: AddExpenseInput,
+      { input }: typescriptTypes.AddExpenseInput,
       { prisma, user }: Context
     ) => {
       const authUser = requireAuth(user);
@@ -109,13 +123,17 @@ export default {
           notes,
         },
       });
-      return successResponse(newExpense, "Expense added successfully");
+      return utils.successResponse(newExpense, "Expense added successfully");
     },
-    register: async (_: any, { input }: RegisterInput, { prisma }: Context) => {
+    register: async (
+      _: any,
+      { input }: typescriptTypes.RegisterInput,
+      { prisma }: Context
+    ) => {
       const { name, email, password } = input;
       const existingUser = await prisma.user.findUnique({ where: { email } });
       if (existingUser) {
-        return loginErrorResponse("User already exists");
+        return utils.loginErrorResponse("User already exists");
       }
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await prisma.user.create({
@@ -126,25 +144,35 @@ export default {
         },
       });
       const token = generateToken({ id: user.id, email: user.email });
-      return loginSuccessResponse(token, { id: user.id, email: user.email });
+      return utils.loginSuccessResponse(token, {
+        id: user.id,
+        email: user.email,
+      });
     },
-    login: async (_: any, { input }: LoginInput, { prisma }: Context) => {
+    login: async (
+      _: any,
+      { input }: typescriptTypes.LoginInput,
+      { prisma }: Context
+    ) => {
       const { email, password } = input;
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
-        return loginErrorResponse("User not found");
+        return utils.loginErrorResponse("User not found");
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        return loginErrorResponse("Invalid password");
+        return utils.loginErrorResponse("Invalid password");
       }
       const token = generateToken({ id: user.id, email: user.email });
-      return loginSuccessResponse(token, { id: user.id, email: user.email });
+      return utils.loginSuccessResponse(token, {
+        id: user.id,
+        email: user.email,
+      });
     },
     AddCategory: async (
       _: any,
-      { input }: AddCategoryInput,
+      { input }: typescriptTypes.AddCategoryInput,
       { prisma, user }: Context
     ) => {
       const authUser = requireAuth(user);
@@ -152,7 +180,7 @@ export default {
 
       const existing = await prisma.category.findUnique({ where: { name } });
       if (existing) {
-        return errorResponse("Category already exists");
+        return utils.errorResponse("Category already exists");
       }
 
       const newCategory = await prisma.category.create({
@@ -161,12 +189,12 @@ export default {
         },
       });
 
-      return successResponse(newCategory, "Category added successfully");
+      return utils.successResponse(newCategory, "Category added successfully");
     },
 
     AddPaymentMethod: async (
       _: any,
-      { input }: AddPaymentMethodInput,
+      { input }: typescriptTypes.AddPaymentMethodInput,
       { prisma, user }: Context
     ) => {
       const authUser = requireAuth(user);
@@ -176,7 +204,7 @@ export default {
         where: { name },
       });
       if (existing) {
-        return errorResponse("Payment method already exists");
+        return utils.errorResponse("Payment method already exists");
       }
 
       const newMethod = await prisma.paymentMethod.create({
@@ -185,7 +213,10 @@ export default {
         },
       });
 
-      return successResponse(newMethod, "Payment method added successfully");
+      return utils.successResponse(
+        newMethod,
+        "Payment method added successfully"
+      );
     },
   },
 };
