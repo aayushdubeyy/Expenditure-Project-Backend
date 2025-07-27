@@ -6,6 +6,15 @@ import * as utils from "../../utils/response";
 import * as typescriptTypes from "../interface";
 import bcrypt from "bcrypt";
 import { getSpendBreakdown } from "../../services/expenditure/spendBreakdown.service";
+import { redisExpiryTime, redisKeys } from "../../redis/constants";
+import {
+  addToSortedSet,
+  deleteKeysByPattern,
+  getCache,
+  getSortedSetRevRange,
+  setCache,
+  setTTL,
+} from "../../utils/redis";
 
 export default {
   Query: {
@@ -22,30 +31,38 @@ export default {
       const startDate = moment(`${year}-${month}-01`).startOf("month").toDate();
       const endDate = moment(startDate).endOf("month").toDate();
 
-      const whereClause: any = {
-        userId: authUser.id,
-        date: {
-          gte: startDate,
-          lte: endDate,
-        },
-      };
+      const key =
+        redisKeys.MONTHLY_EXPENSES +
+        `${user?.id}:${year}:${month}:${filter?.paymentMethodId || "all"}`;
+      let expenses = await getCache(key);
+      if (!expenses) {
+        const whereClause: any = {
+          userId: authUser.id,
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        };
 
-      if (filter?.paymentMethodId) {
-        whereClause.paymentMethodId = filter.paymentMethodId;
+        if (filter?.paymentMethodId) {
+          whereClause.paymentMethodId = filter.paymentMethodId;
+        }
+        // Todo: Create repository folders for all the DB calls
+        expenses = await prisma.expense.findMany({
+          where: whereClause,
+          orderBy: {
+            date: "desc",
+          },
+          include: {
+            category: true,
+            paymentMethod: true,
+            creditCard: true,
+          },
+        });
+        await setCache(key, expenses, redisExpiryTime.SEVEN_DAYS);
       }
-      // Todo: Create repository folders for all the DB calls
-      const expenses = await prisma.expense.findMany({
-        where: whereClause,
-        orderBy: {
-          date: "desc",
-        },
-        include: {
-          category: true,
-          paymentMethod: true,
-          creditCard: true,
-        },
-      });
-      return expenses.map((expense) => ({
+
+      return expenses.map((expense: any) => ({
         ...expense,
         date: moment(expense.date).format("YYYY-MM-DD"),
       }));
@@ -57,7 +74,13 @@ export default {
     ) => {
       const authUser = requireAuth(user);
       try {
+        const key = redisKeys.SPEND_BREAKDOWN + `${user?.id}:${filter?.year}`;
+        let cached = await getCache(key);
+        cached = JSON.parse(cached);
+        if (cached) return { success: true, message: "from cache", ...cached };
+
         const data = await getSpendBreakdown(authUser.id, filter?.year);
+        await setCache(key, JSON.stringify(data), redisExpiryTime.SEVEN_DAYS);
         return {
           success: true,
           message: "Spend breakdown fetched successfully",
@@ -74,6 +97,116 @@ export default {
           yearlyCategoryBreakdown: [],
           yearlyMethodBreakdown: [],
         };
+      }
+    },
+    getTopSpendingCategories: async (
+      _: any,
+      { topN }: { topN: number },
+      { prisma, user }: Context
+    ) => {
+      const authUser = requireAuth(user);
+      try {
+        const key = redisKeys.TOP_CATEGORIES + `${user?.id}:${topN}`;
+        const cached = await getSortedSetRevRange(key, 0, topN - 1);
+        if (cached && cached.length > 0) {
+          const topCategories = cached.map((entry) => {
+            const [name, amount] = entry.split("::");
+            return { name, amount: parseFloat(amount) };
+          });
+          return utils.successResponse(
+            topCategories,
+            "Top spending categories (from cache)"
+          );
+        }
+        const categoryData = await prisma.expense.groupBy({
+          by: ["categoryId"],
+          where: { userId: user?.id },
+          _sum: { amount: true },
+          orderBy: { _sum: { amount: "desc" } },
+          take: topN,
+        });
+
+        const categoryIds = categoryData.map((c) => c.categoryId);
+
+        const categories = await prisma.category.findMany({
+          where: { id: { in: categoryIds } },
+        });
+
+        const nameMap = Object.fromEntries(
+          categories.map((c) => [c.id, c.name])
+        );
+
+        const topCategories = categoryData.map((entry) => ({
+          name: nameMap[entry.categoryId] || "Unknown",
+          amount: entry._sum.amount || 0,
+        }));
+        for (const { name, amount } of topCategories) {
+          await addToSortedSet(key, amount, `${name}::${amount}`);
+        }
+        await setTTL(key, redisExpiryTime.SEVEN_DAYS);
+        return utils.successResponse(
+          topCategories,
+          "Top spending categories fetched successfully"
+        );
+      } catch (error) {}
+    },
+    getTopSpendingPaymentMethods: async (
+      _: any,
+      { topN }: { topN: number },
+      { prisma, user }: Context
+    ) => {
+      const authUser = requireAuth(user);
+      const key = redisKeys.TOP_PAYMENT_METHODS + `${user?.id}:${topN}`;
+
+      try {
+        const cached = await getSortedSetRevRange(key, 0, topN - 1);
+        if (cached.length > 0) {
+          const topMethods = cached.map((entry) => {
+            const [name, amount] = entry.split("::");
+            return { name, amount: parseFloat(amount) };
+          });
+
+          return utils.successResponse(
+            topMethods,
+            "Top spending payment methods (from cache)"
+          );
+        }
+
+        const methodData = await prisma.expense.groupBy({
+          by: ["paymentMethodId"],
+          where: { userId: user?.id },
+          _sum: { amount: true },
+          orderBy: { _sum: { amount: "desc" } },
+          take: topN,
+        });
+
+        const methodIds = methodData.map((entry) => entry.paymentMethodId);
+
+        const methods = await prisma.paymentMethod.findMany({
+          where: { id: { in: methodIds } },
+        });
+
+        const nameMap = Object.fromEntries(methods.map((m) => [m.id, m.name]));
+
+        const topMethods = methodData.map((entry) => {
+          const name = nameMap[entry.paymentMethodId] || "Unknown";
+          const amount = entry._sum.amount || 0;
+          return { name, amount };
+        });
+
+        for (const { name, amount } of topMethods) {
+          await addToSortedSet(key, amount, `${name}::${amount}`);
+        }
+
+        return utils.successResponse(
+          topMethods,
+          "Top spending payment methods (from DB)"
+        );
+      } catch (error) {
+        console.error(error);
+        return utils.errorResponse(
+          "Failed to fetch top spending payment methods"
+        );
       }
     },
   },
@@ -123,6 +256,10 @@ export default {
           notes,
         },
       });
+      await deleteKeysByPattern(redisKeys.MONTHLY_EXPENSES + `${user?.id}*`);
+      await deleteKeysByPattern(redisKeys.SPEND_BREAKDOWN + `${authUser.id}*`);
+      await deleteKeysByPattern(redisKeys.TOP_CATEGORIES + `${user?.id}*`);
+      await deleteKeysByPattern(redisKeys.TOP_PAYMENT_METHODS + `${user?.id}*`);
       return utils.successResponse(newExpense, "Expense added successfully");
     },
     register: async (
@@ -188,7 +325,6 @@ export default {
           name,
         },
       });
-
       return utils.successResponse(newCategory, "Category added successfully");
     },
 
@@ -212,7 +348,6 @@ export default {
           name,
         },
       });
-
       return utils.successResponse(
         newMethod,
         "Payment method added successfully"

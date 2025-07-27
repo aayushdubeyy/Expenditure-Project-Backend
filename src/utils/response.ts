@@ -6,20 +6,24 @@ export function errorResponse(message: string) {
   return { success: false, message };
 }
 
-export const loginSuccessResponse = (token: string, user: any, message?: string) => {
+export const loginSuccessResponse = (
+  token: string,
+  user: any,
+  message?: string
+) => {
   return {
     success: true,
     message: message || "Login successful",
     token,
-    user
+    user,
   };
-}
+};
 
 export const loginErrorResponse = (message: string) => {
   return {
     success: false,
     message,
     token: null,
-    user: null
+    user: null,
   };
 };

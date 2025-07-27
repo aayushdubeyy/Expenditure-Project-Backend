@@ -5,10 +5,11 @@ export const getSpendBreakdown = async (userId: string, year: number) => {
   const monthlyMethodBreakdown: any[] = [];
 
   for (let month = 1; month <= 12; month++) {
-      const start = new Date(`${year}-${month}-01`);
-  const end = month === 12
-    ? new Date(`${year + 1}-01-01`)
-    : new Date(`${year}-${month + 1}-01`);
+    const start = new Date(`${year}-${month}-01`);
+    const end =
+      month === 12
+        ? new Date(`${year + 1}-01-01`)
+        : new Date(`${year}-${month + 1}-01`);
     const monthlyExpenses = await context.prisma.expense.findMany({
       where: {
         userId,

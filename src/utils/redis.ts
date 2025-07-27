@@ -23,7 +23,7 @@ export const getCache = async (key: string) => {
     const value = await redis.get(key);
     if (!value) return null;
 
-    return typeof value === "string" ? value :JSON.parse(value);
+    return typeof value === "string" ? value : JSON.parse(value);
   } catch (error) {
     throw new Error(`${error}`);
     console.log(error);
@@ -148,4 +148,8 @@ export const getListRange = async (
   end: number
 ): Promise<string[]> => {
   return await redis.lrange(key, start, end);
+};
+
+export const setTTL = async (key: string, expiry: number): Promise<void> => {
+  await redis.expire(key, expiry);
 };

@@ -6,10 +6,10 @@ export interface RegisterInput {
   };
 }
 type UserInput = {
-   name: string;
-    email: string;
-    password: string;
-}
+  name: string;
+  email: string;
+  password: string;
+};
 export interface AddCreditCardInput {
   input: {
     name: string;
@@ -37,15 +37,15 @@ export type MutationResponse<T> = {
 };
 
 export interface LoginInput {
-  input: Omit<RegisterInput['input'], 'name'>; 
+  input: Omit<RegisterInput["input"], "name">;
 }
 
-export interface ExpensesFilterInput{
+export interface ExpensesFilterInput {
   filter?: {
     month?: number;
     year?: number;
     paymentMethodId?: number;
-  }
+  };
 }
 
 export interface AddCategoryInput {
