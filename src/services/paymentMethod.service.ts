@@ -2,9 +2,10 @@ import { getSortedSetRevRange, addToSortedSet, setTTL } from "../utils/redis";
 import { redisKeys, redisExpiryTime } from "../redis/constants";
 import * as paymentRepo from "../repository/paymentMethod.repository";
 import { errorResponse, successResponse } from "../utils/response";
+import { PrismaClient } from "../../generated/prisma";
 
 export const getTopSpendingPaymentMethods = async (
-  prisma: any,
+  prisma: PrismaClient,
   userId: string,
   topN: number
 ) => {
@@ -38,7 +39,7 @@ export const getTopSpendingPaymentMethods = async (
   return successResponse(topMethods, "Top spending payment methods fetched successfully");
 };
 
-export const addPaymentMethod = async (prisma: any, name: string) => {
+export const addPaymentMethod = async (prisma: PrismaClient, name: string) => {
   const existing = await paymentRepo.findPaymentMethodByName(prisma, name);
   if (existing) {
     return errorResponse("Payment method already exists");

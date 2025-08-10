@@ -1,8 +1,9 @@
 import bcrypt from "bcrypt";
 import { generateToken } from "../utils/jwt";
 import * as userRepo from "../repository/user.repository";
+import { PrismaClient } from "../../generated/prisma";
 
-export const register = async (prisma: any, input: any) => {
+export const register = async (prisma: PrismaClient, input: any) => {
   const { name, email, password } = input;
   const existingUser = await userRepo.findUserByEmail(prisma, email);
   if (existingUser) {
@@ -25,7 +26,7 @@ export const register = async (prisma: any, input: any) => {
   };
 };
 
-export const login = async (prisma: any, input: any) => {
+export const login = async (prisma: PrismaClient, input: any) => {
   const { email, password } = input;
   const user = await userRepo.findUserByEmail(prisma, email);
   if (!user) {

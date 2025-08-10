@@ -2,9 +2,10 @@ import { getSortedSetRevRange, addToSortedSet, setTTL } from "../utils/redis";
 import { redisKeys, redisExpiryTime } from "../redis/constants";
 import * as categoryRepo from "../repository/category.repository";
 import { successResponse } from "../utils/response";
+import { PrismaClient } from "../../generated/prisma";
 
 export const getTopSpendingCategories = async (
-  prisma: any,
+  prisma: PrismaClient,
   userId: string,
   topN: number
 ) => {
@@ -44,7 +45,7 @@ export const getTopSpendingCategories = async (
   return successResponse(topCategories, "Top spending categories fetched successfully");
 };
 
-export const addCategory = async (prisma: any, name: string) => {
+export const addCategory = async (prisma: PrismaClient, name: string) => {
   const existing = await categoryRepo.findCategoryByName(prisma, name);
   if (existing) {
     return { success: false, message: "Category already exists" };

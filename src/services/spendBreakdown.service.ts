@@ -1,7 +1,7 @@
 
 import { PrismaClient } from "../../generated/prisma";
 
-export const getSpendBreakdown = async (prisma: PrismaClient, userId: string, year: number) => {
+export const getSpendBreakdownFunction = async (prisma: PrismaClient, userId: string, year: number) => {
   const monthlyCategoryBreakdown: any[] = [];
   const monthlyMethodBreakdown: any[] = [];
 

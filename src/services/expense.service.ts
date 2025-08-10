@@ -3,9 +3,10 @@ import * as expenseRepo from "../repository/expense.repository";
 import { deleteKeysByPattern, getCache, setCache } from "../utils/redis";
 import { redisKeys, redisExpiryTime } from "../redis/constants";
 import { successResponse } from "../utils/response";
+import { PrismaClient } from "../../generated/prisma";
 
 export const getMonthlyExpenses = async (
-  prisma: any,
+  prisma: PrismaClient,
   userId: string,
   filter:
     | { month?: number; year?: number; paymentMethodId?: number }
@@ -40,7 +41,7 @@ export const getMonthlyExpenses = async (
   return successResponse(resp, "Monthly expenses fetched successfully");
 };
 
-export const addExpense = async (prisma: any, userId: string, input: any) => {
+export const addExpense = async (prisma: PrismaClient, userId: string, input: any) => {
   const newExpense = await expenseRepo.createExpense(prisma, {
     userId,
     title: input.title,

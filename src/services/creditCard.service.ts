@@ -1,7 +1,8 @@
+import { PrismaClient } from "../../generated/prisma";
 import * as creditCardRepo from "../repository/creditCard.repository";
 import { successResponse } from "../utils/response";
 
-export const addCreditCard = async (prisma: any, userId: string, input: any) => {
+export const addCreditCard = async (prisma: PrismaClient, userId: string, input: any) => {
   const { name, limit, billCycleDay } = input;
   const newCard = await creditCardRepo.createCreditCard(prisma, {
     userId,
