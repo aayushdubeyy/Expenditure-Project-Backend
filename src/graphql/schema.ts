@@ -18,6 +18,11 @@ const typeDefs = gql`
     amount: Float!
     date: String!
   }
+  type GetExpenseOutput {
+    success: Boolean!
+    data: [Expense!]!
+    message: String
+  }
   type UserResponse {
     success: Boolean!
     message: String
@@ -63,9 +68,15 @@ const typeDefs = gql`
     year: Int
     paymentMethodId: Int
   }
+  type TopSpendingCategory {
+  name: String!
+  amount: Float!
+}
   type Query {
     getMonthlyExpenses(filter: ExpensesFilterInput): [Expense!]!
     getSpendBreakdown(filter: YearFilterInput!): SpendBreakdownResponse!
+    getTopSpendingCategories(topN: Int!): [TopSpendingCategory!]!
+    getTopSpendingPaymentMethods(topN: Int!): [TopSpendingCategory!]!
   }
   input LoginInput {
     email: String!

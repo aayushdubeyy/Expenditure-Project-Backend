@@ -19,6 +19,8 @@ model User {
   expenses         Expense[]
   creditCards      CreditCard[]   
   createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  budgets          Budget[]
 }
 
 model PaymentMethod {
@@ -28,9 +30,10 @@ model PaymentMethod {
 }
 
 model Category {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
   name String @unique
   expenses Expense[]
+  budgets Budget[]
 }
 
 model CreditCard {
@@ -57,7 +60,7 @@ model Expense {
   userId          String
   user            User     @relation(fields: [userId], references: [id])
 
-  categoryId      Int
+  categoryId      String
   category        Category @relation(fields: [categoryId], references: [id])
 
   paymentMethodId Int
@@ -77,4 +80,18 @@ model Expense {
   @@index([categoryId])
   @@index([paymentMethodId])
   @@index([creditCardId])
+}
+
+model Budget {
+  id          String @id @default(uuid())
+  userId      String
+  categoryId  String?
+  amount      Float
+  month       Int
+  year        Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+  category    Category? @relation(fields: [categoryId], references: [id])
 }

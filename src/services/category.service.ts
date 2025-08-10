@@ -17,7 +17,7 @@ export const getTopSpendingCategories = async (
       const [name, amount] = entry.split("::");
       return { name, amount: parseFloat(amount) };
     });
-    return successResponse(topCategories, "Top spending categories (from cache)");
+    return topCategories;
   }
 
   const categoryData = await categoryRepo.getCategoryTotals(

@@ -17,7 +17,7 @@ export const getTopSpendingPaymentMethods = async (
       const [name, amount] = entry.split("::");
       return { name, amount: parseFloat(amount) };
     });
-    return successResponse(topMethods, "Top spending payment methods (from cache)");
+    return topMethods;
   }
 
   const methodData = await paymentRepo.getPaymentMethodTotals(prisma, userId, topN);

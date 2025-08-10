@@ -23,7 +23,7 @@ export const getCache = async (key: string) => {
     const value = await redis.get(key);
     if (!value) {return null;}
 
-    return typeof value === "string" ? value : JSON.parse(value);
+    return typeof value === "string" ? JSON.parse(value) : value;
   } catch (error) {
     throw new Error(`${error}`);
     console.error(error);
