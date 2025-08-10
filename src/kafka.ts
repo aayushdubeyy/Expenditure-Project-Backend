@@ -12,6 +12,7 @@ export const initKafka = async () => {
   try {
     await producer.connect();
     await consumer.connect();
+    /* eslint-disable-next-line no-console */
     console.log("✅ Kafka producer & consumer connected");
   } catch (err) {
     console.error("❌ Kafka connection error:", err);

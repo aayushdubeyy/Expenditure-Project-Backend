@@ -3,6 +3,7 @@ import Redis from "ioredis";
 const redis = new Redis(process.env.REDIS_URL!); // from .env or docker-compose
 
 redis.on("connect", () => {
+  /* eslint-disable-next-line no-console */
   console.log("✅ Redis connected");
 });
 

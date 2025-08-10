@@ -1,5 +1,5 @@
 export const findMonthlyExpenses = async (
-  prisma: any, // Or PrismaClient if you import types
+  prisma: any, 
   userId: string,
   startDate: Date,
   endDate: Date,

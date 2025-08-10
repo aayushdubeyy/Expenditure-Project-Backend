@@ -14,19 +14,19 @@ export const setCache = async (
       await redis.set(key, stringValue);
     }
   } catch (error) {
-    throw new Error("Error setting value in cache");
+    throw new Error("Error setting value in cache: " + error);
   }
 };
 
 export const getCache = async (key: string) => {
   try {
     const value = await redis.get(key);
-    if (!value) return null;
+    if (!value) {return null;}
 
     return typeof value === "string" ? value : JSON.parse(value);
   } catch (error) {
     throw new Error(`${error}`);
-    console.log(error);
+    console.error(error);
   }
 };
 
@@ -34,7 +34,7 @@ export const deleteCache = async (key: string) => {
   try {
     await redis.del(key);
   } catch (error) {
-    throw new Error("Error deleting entry");
+    throw new Error("Error deleting entry: " + error);
   }
 };
 
@@ -43,7 +43,7 @@ export const hasCache = async (key: string) => {
     const result = await redis.exists(key);
     return result === 1;
   } catch (error) {
-    throw new Error("Error Checking if key exists");
+    throw new Error("Error Checking if key exists: " + error);
   }
 };
 
@@ -122,16 +122,6 @@ export const publish = async (
   message: string
 ): Promise<void> => {
   await redis.publish(channel, message);
-};
-
-export const subscribe = (
-  channel: string,
-  handler: (message: string) => void
-): void => {
-  const sub = redis.duplicate();
-  sub.subscribe(channel, () => {
-    sub.on("message", (_, message) => handler(message));
-  });
 };
 
 export const pushToList = async (key: string, value: string): Promise<void> => {

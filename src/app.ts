@@ -3,10 +3,7 @@ dotenv.config();
 import { ApolloServer } from "apollo-server";
 import typeDefs from "./graphql/schema";
 import resolvers from "./graphql/resolvers";
-import redis from "./redis";
-import { initKafka } from "./kafka";
-import { context, createContext } from "./context";
-import { getCache, setCache } from "./utils/redis";
+import { createContext } from "./context";
 
 export async function startServer() {
   // await initKafka(); // ✅ Kafka connects
@@ -19,5 +16,6 @@ export async function startServer() {
     cors: { origin: "*", credentials: true },
   });
   const { url } = await server.listen({ port: 4000 });
+  /* eslint-disable-next-line no-console */
   console.log(`🚀 GraphQL ready at ${url}`);
 }

@@ -5,7 +5,7 @@ export interface RegisterInput {
     password: string;
   };
 }
-type UserInput = {
+export type UserInput = {
   name: string;
   email: string;
   password: string;
