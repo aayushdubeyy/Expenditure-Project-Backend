@@ -1,6 +1,7 @@
-import { context } from "../../context";
 
-export const getSpendBreakdown = async (userId: string, year: number) => {
+import { PrismaClient } from "../../generated/prisma";
+
+export const getSpendBreakdown = async (prisma: PrismaClient, userId: string, year: number) => {
   const monthlyCategoryBreakdown: any[] = [];
   const monthlyMethodBreakdown: any[] = [];
 
@@ -10,7 +11,7 @@ export const getSpendBreakdown = async (userId: string, year: number) => {
       month === 12
         ? new Date(`${year + 1}-01-01`)
         : new Date(`${year}-${month + 1}-01`);
-    const monthlyExpenses = await context.prisma.expense.findMany({
+    const monthlyExpenses = await prisma.expense.findMany({
       where: {
         userId,
         date: {
@@ -51,7 +52,7 @@ export const getSpendBreakdown = async (userId: string, year: number) => {
     }
   }
 
-  const yearlyExpenses = await context.prisma.expense.findMany({
+  const yearlyExpenses = await prisma.expense.findMany({
     where: {
       userId,
       date: {
